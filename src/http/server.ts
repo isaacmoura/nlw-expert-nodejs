@@ -1,26 +1,26 @@
-import fastify from "fastify"
-import { PrismaClient } from "@prisma/client"
-import { z } from 'zod'
+import fastify from "fastify";
+import Cookie from "@fastify/cookie";
+import websocket from "@fastify/websocket";
+import { cratePoll } from "./routes/create_polls";
+import { getPoll } from "./routes/get_poll";
+import { voteOnPoll } from "./routes/vote_on_poll";
+import { pollResults } from "./ws/poll-results";
+
 
 const app = fastify()
 
-const prisma = new PrismaClient()
-
-app.post('/polls', async (request, reply) => {
-  const createPollBody = z.object({
-    title: z.string()
-  })
+app.register(Cookie, {
+  secret: "polls-app-zck",
+  hook: 'onRequest', 
+})
   
-  const { title } =createPollBody.parse(request.body)
-  
-  const poll = await prisma.poll.create({
-    data: {
-      title,
-    }
-  })
+app.register(websocket)
 
-  return reply.status(201).send({ pollid: poll.id })
-});
+app.register(cratePoll)
+app.register(getPoll)
+app.register(voteOnPoll)
+
+app.register(pollResults)
 
 app.listen({ port: 3333 }).then(() => {
   console.log('HTTP server running')
